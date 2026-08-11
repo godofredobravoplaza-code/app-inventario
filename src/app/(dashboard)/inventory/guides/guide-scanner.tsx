@@ -7,7 +7,7 @@ import type { ModelCatalogItem, EquipmentCategory, EquipmentStatus } from '@/lib
 import { Camera, Save, Plus, AlertCircle, X, Check, ScanLine } from 'lucide-react'
 
 // Para evitar problemas de SSR con Html5QrcodeScanner
-import { Html5QrcodeScanner } from 'html5-qrcode'
+import { Html5Qrcode } from 'html5-qrcode'
 
 interface GuideScannerProps {
   initialCatalog: ModelCatalogItem[]
@@ -45,7 +45,7 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
   const [isScanning, setIsScanning] = useState(false)
   
   // Ref for scanner
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null)
+  const scannerRef = useRef<Html5Qrcode | null>(null)
 
   // Derived Catalog
   const availableBrands = useMemo(() => {
@@ -84,25 +84,33 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
 
   // Barcode Scanner Logic
   useEffect(() => {
-    if (isScanning && !scannerRef.current) {
-      const scanner = new Html5QrcodeScanner(
-        "reader",
-        { fps: 10, qrbox: { width: 250, height: 100 }, rememberLastUsedCamera: true },
-        /* verbose= */ false
-      )
+    let html5QrCode: Html5Qrcode | null = null;
 
-      scanner.render(
+    if (isScanning) {
+      // Usamos Html5Qrcode directo para saltarnos la interfaz defectuosa
+      html5QrCode = new Html5Qrcode("reader");
+      scannerRef.current = html5QrCode;
+
+      html5QrCode.start(
+        { facingMode: "environment" }, // Usa la cámara trasera por defecto
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 100 }
+        },
         (decodedText) => {
           // Success callback
           const cleanText = decodedText.trim()
           setScannedSerials(prev => {
             if (!prev.includes(cleanText)) {
-              // Play a beep sound using web audio api
+              // Play a beep sound
               try {
                 const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
                 const osc = ctx.createOscillator()
-                osc.connect(ctx.destination)
+                const gain = ctx.createGain()
+                osc.connect(gain)
+                gain.connect(ctx.destination)
                 osc.frequency.value = 800
+                gain.gain.value = 0.1
                 osc.start()
                 osc.stop(ctx.currentTime + 0.1)
               } catch(e) {}
@@ -111,17 +119,21 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
             return prev
           })
         },
-        (error) => {
-          // Error callback (ignored for noise)
+        (errorMessage) => {
+          // Ignoramos errores de escaneo continuo
         }
-      )
-      scannerRef.current = scanner
+      ).catch((err) => {
+        console.error("No se pudo iniciar la cámara", err);
+        setError("Error al iniciar cámara: " + (err?.message || "Permiso denegado"));
+        setIsScanning(false);
+      });
     }
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(console.error)
-        scannerRef.current = null
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          html5QrCode?.clear();
+        }).catch(console.error);
       }
     }
   }, [isScanning])
