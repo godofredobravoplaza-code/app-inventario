@@ -73,12 +73,15 @@ export async function POST(req: NextRequest) {
     {
       "userName": "Nombre de la persona a la que se entregan o retiran los equipos (o el remitente si es guía). Deja vacío si no aplica",
       "rut": "RUT de la persona si aparece, sino vacío",
+      "receptionDate": "Fecha que aparece en el documento (formato YYYY-MM-DD), sino vacío",
+      "ticketNumber": "Número de ticket (ej. WO00... o similar) si aparece, sino vacío",
       "items": [
         {
           "category": "Tipo de equipo (ej. LAPTOP, DESKTOP, PRINTER, etc.)",
           "brand": "Marca del equipo",
           "model": "Modelo del equipo",
-          "serial": "Número de serie o IMEI"
+          "serial": "Número de serie o IMEI",
+          "hostname": "Hostname o nombre de la máquina si aparece para el equipo (ej. 122CHL...), sino vacío"
         }
       ]
     }

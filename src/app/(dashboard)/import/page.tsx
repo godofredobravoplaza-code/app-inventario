@@ -192,7 +192,7 @@ export default function ImportPage() {
             </h3>
             
             <div className="bg-slate-950 rounded-xl p-6 border border-slate-800 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <label className="text-xs text-slate-500 uppercase font-bold tracking-wider">Usuario / Asignado a</label>
                   <p className="text-white font-medium">{result.userName || 'No encontrado'}</p>
@@ -200,6 +200,14 @@ export default function ImportPage() {
                 <div>
                   <label className="text-xs text-slate-500 uppercase font-bold tracking-wider">RUT</label>
                   <p className="text-white font-medium">{result.rut || 'No encontrado'}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 uppercase font-bold tracking-wider">Fecha</label>
+                  <p className="text-white font-medium">{result.receptionDate || 'No encontrada'}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 uppercase font-bold tracking-wider">N° Ticket</label>
+                  <p className="text-white font-medium">{result.ticketNumber || 'No encontrado'}</p>
                 </div>
               </div>
               
@@ -213,7 +221,8 @@ export default function ImportPage() {
                           <th className="px-4 py-2 rounded-tl-lg">Tipo</th>
                           <th className="px-4 py-2">Marca</th>
                           <th className="px-4 py-2">Modelo</th>
-                          <th className="px-4 py-2 rounded-tr-lg">Serie / IMEI</th>
+                          <th className="px-4 py-2">Serie / IMEI</th>
+                          <th className="px-4 py-2 rounded-tr-lg">Hostname</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -223,6 +232,7 @@ export default function ImportPage() {
                             <td className="px-4 py-3 text-white font-medium">{item.brand}</td>
                             <td className="px-4 py-3 text-slate-300">{item.model}</td>
                             <td className="px-4 py-3 text-emerald-400 font-mono">{item.serial}</td>
+                            <td className="px-4 py-3 text-indigo-400 font-mono">{item.hostname || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
