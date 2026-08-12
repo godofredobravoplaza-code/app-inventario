@@ -207,7 +207,7 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
     setScannedSerials(prev => prev.filter(s => s !== serial))
   }
 
-  const isFormComplete = Boolean(guideNumber && provider && brand && model)
+  const isFormComplete = Boolean(brand && model)
 
   const handleSaveBulk = async () => {
     if (!isFormComplete || scannedSerials.length === 0) {
@@ -297,7 +297,7 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
             <h3 className="text-lg font-medium text-white mb-4 border-b border-slate-800 pb-2">1. Datos de la Guía</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">N° de Guía *</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">N° de Guía (Opcional)</label>
                 <input 
                   type="text" 
                   value={guideNumber}
@@ -307,7 +307,7 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Proveedor *</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Proveedor (Opcional)</label>
                 <input 
                   type="text" 
                   value={provider}
@@ -579,29 +579,37 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
             )}
           </div>
 
-          <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-            {scannedSerials.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-sm border border-dashed border-slate-700 rounded-lg">
-                La lista está vacía. Escanea equipos para agregarlos aquí.
-              </div>
-            ) : (
-              scannedSerials.map((serial, index) => (
-                <div key={serial} className="flex justify-between items-center bg-slate-950 border border-slate-800 p-3 rounded-lg group hover:border-indigo-500/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="bg-slate-800 text-slate-400 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium">
-                      {scannedSerials.length - index}
-                    </span>
-                    <span className="text-white font-mono">{serial}</span>
-                  </div>
-                  <button
-                    onClick={() => handleRemoveSerial(serial)}
-                    className="text-slate-500 hover:text-red-400 p-1 transition-colors opacity-0 group-hover:opacity-100"
-                    title="Eliminar de la lista"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+          <div className="space-y-3">
+            {scannedSerials.map((serial, index) => (
+              <div key={index} className="flex items-center justify-between bg-slate-950 border border-slate-800 p-3 rounded-lg group">
+                <div className="flex items-center gap-3 w-full">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 text-xs font-medium text-slate-400">
+                    {scannedSerials.length - index}
+                  </span>
+                  <input
+                    type="text"
+                    value={serial}
+                    onChange={(e) => {
+                      const newSerials = [...scannedSerials];
+                      newSerials[index] = e.target.value.trim().toUpperCase();
+                      setScannedSerials(newSerials);
+                    }}
+                    className="bg-transparent border-none outline-none text-white font-mono text-sm w-full focus:ring-0 p-0"
+                  />
                 </div>
-              ))
+                <button
+                  onClick={() => handleRemoveSerial(serial)}
+                  className="text-slate-500 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Eliminar"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+            {scannedSerials.length === 0 && (
+              <div className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-slate-800 rounded-lg">
+                No hay equipos escaneados aún
+              </div>
             )}
           </div>
         </div>
