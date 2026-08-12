@@ -18,6 +18,48 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
   const supabase = createClient()
   
   const [loading, setLoading] = useState(false)
+  const [fileScanLoading, setFileScanLoading] = useState(false)
+
+  const handleFileScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileScanLoading(true);
+    
+    try {
+      // Necesitamos asegurar que el div de reader existe y está visible para que html5qrcode no falle.
+      // Pero 'reader' siempre está en el DOM, solo que hidden, así que podríamos tener que instanciarlo temporalmente
+      const html5QrCode = new Html5Qrcode("reader");
+      const decodedText = await html5QrCode.scanFile(file, true); // true = showImage in the reader
+      
+      const cleanText = decodedText.trim();
+      setScannedSerials(prev => {
+        if (!prev.includes(cleanText)) {
+          try {
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+            const osc = ctx.createOscillator()
+            const gain = ctx.createGain()
+            osc.connect(gain)
+            gain.connect(ctx.destination)
+            osc.frequency.value = 800
+            gain.gain.value = 0.1
+            osc.start()
+            osc.stop(ctx.currentTime + 0.1)
+          } catch(e) {}
+          return [cleanText, ...prev]
+        }
+        return prev;
+      });
+      alert(`✅ Código escaneado con éxito: ${cleanText}`);
+      html5QrCode.clear();
+    } catch (err) {
+      console.error("Error escaneando archivo", err);
+      alert("❌ No se encontró ningún código legible en la foto. Intenta tomar la foto desde más cerca para que el código quede nítido y grande.");
+    } finally {
+      setFileScanLoading(false);
+      e.target.value = '';
+    }
+  }
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -472,13 +514,41 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
           </div>
 
           {/* Div donde Html5QrcodeScanner inyectará el video */}
-          <div className="w-full rounded-lg overflow-hidden border border-slate-800 bg-black min-h-[300px] flex items-center justify-center">
-            {!isScanning && (
-              <div className="text-slate-500 text-sm text-center p-6">
-                <Camera className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                Presiona "Iniciar Cámara" y apunta al código de barras.
+          <div className="w-full rounded-lg overflow-hidden border border-slate-800 bg-black min-h-[300px] flex flex-col items-center justify-center relative">
+            {!isScanning && !fileScanLoading && (
+              <div className="text-slate-500 text-sm text-center p-6 flex flex-col items-center">
+                <Camera className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="mb-4">Presiona "Iniciar Cámara" y apunta al código.</p>
+                <div className="flex flex-col gap-3 w-full max-w-[200px]">
+                  <button
+                    onClick={() => setIsScanning(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Iniciar Cámara
+                  </button>
+                  <label className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer border border-slate-700">
+                    <Search className="w-4 h-4" />
+                    Subir/Tomar Foto
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      capture="environment" 
+                      className="hidden" 
+                      onChange={handleFileScan}
+                    />
+                  </label>
+                </div>
               </div>
             )}
+            
+            {fileScanLoading && (
+              <div className="absolute inset-0 z-10 bg-slate-900/90 flex flex-col items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mb-2"></div>
+                <p className="text-sm text-slate-300">Analizando foto...</p>
+              </div>
+            )}
+
             <div id="reader" className={`w-full ${!isScanning ? 'hidden' : 'block'}`}></div>
           </div>
         </div>
