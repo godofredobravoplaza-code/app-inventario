@@ -7,7 +7,7 @@ import type { ModelCatalogItem, EquipmentCategory, EquipmentStatus } from '@/lib
 import { Camera, Save, Plus, AlertCircle, X, Check, ScanLine } from 'lucide-react'
 
 // Para evitar problemas de SSR con Html5QrcodeScanner
-import { Html5Qrcode } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 
 interface GuideScannerProps {
   initialCatalog: ModelCatalogItem[]
@@ -46,6 +46,7 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
   
   // Ref for scanner
   const scannerRef = useRef<Html5Qrcode | null>(null)
+  const topRef = useRef<HTMLDivElement | null>(null)
 
   // Derived Catalog
   const availableBrands = useMemo(() => {
@@ -71,6 +72,7 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
 
     if (insertError) {
       setError(`Error DB: ${insertError.message}`)
+      topRef.current?.scrollIntoView({ behavior: 'smooth' })
     } else if (data) {
       setCatalog([...catalog, data as ModelCatalogItem])
       setBrand(data.brand)
@@ -87,8 +89,16 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
     let html5QrCode: Html5Qrcode | null = null;
 
     if (isScanning) {
-      // Usamos Html5Qrcode directo para saltarnos la interfaz defectuosa
-      html5QrCode = new Html5Qrcode("reader");
+      // Usamos Html5Qrcode directo para saltarnos la interfaz defectuosa.
+      // Restringimos los formatos para evitar que lea las rejillas de ventilación como códigos de barras largos (EAN/ITF)
+      html5QrCode = new Html5Qrcode("reader", {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39
+        ]
+      });
       scannerRef.current = html5QrCode;
 
       html5QrCode.start(
@@ -126,6 +136,7 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
       ).catch((err) => {
         console.error("No se pudo iniciar la cámara", err);
         setError("Error al iniciar cámara: " + (err?.message || "Permiso denegado"));
+        topRef.current?.scrollIntoView({ behavior: 'smooth' })
         setIsScanning(false);
       });
     }
@@ -147,9 +158,12 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
     setScannedSerials(prev => prev.filter(s => s !== serial))
   }
 
+  const isFormComplete = Boolean(guideNumber && provider && brand && model)
+
   const handleSaveBulk = async () => {
-    if (!guideNumber || !provider || !brand || !model || scannedSerials.length === 0) {
+    if (!isFormComplete || scannedSerials.length === 0) {
       setError("Faltan campos obligatorios o no hay series escaneadas.")
+      topRef.current?.scrollIntoView({ behavior: 'smooth' })
       return
     }
 
@@ -211,7 +225,7 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div ref={topRef} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       
       {/* Columna Izquierda: Configuración de la Guía */}
       <div className="space-y-6">
@@ -455,18 +469,26 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
         {/* Lista de Equipos */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-white">
+            <h3 className="text-lg font-medium text-white flex-1">
               Series Escaneadas ({scannedSerials.length})
             </h3>
             {scannedSerials.length > 0 && (
-              <button
-                onClick={handleSaveBulk}
-                disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-emerald-600/20 disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                {loading ? 'Guardando...' : 'Guardar Todos'}
-              </button>
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  onClick={handleSaveBulk}
+                  disabled={loading || !isFormComplete}
+                  className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-lg 
+                    ${(!isFormComplete || loading) 
+                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none' 
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'}`}
+                >
+                  <Save className="w-4 h-4" />
+                  {loading ? 'Guardando...' : 'Guardar Todos'}
+                </button>
+                {!isFormComplete && (
+                  <span className="text-[10px] text-red-400 font-medium">⚠️ Faltan datos arriba</span>
+                )}
+              </div>
             )}
           </div>
 
