@@ -86,6 +86,23 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in AI extraction:', error);
+    
+    // Si es error 404, intentemos buscar qué modelos tiene disponibles la API Key
+    if (error.message?.includes('404')) {
+      try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        const data = await resp.json();
+        const availableModels = data.models ? data.models.map((m:any) => m.name.replace('models/', '')).join(', ') : 'Ninguno';
+        
+        return NextResponse.json({ 
+          error: `El modelo gemini-1.5-flash no está disponible en tu cuenta. Modelos disponibles para tu clave: ${availableModels}` 
+        }, { status: 500 });
+      } catch (e) {
+        // fallthrough
+      }
+    }
+
     return NextResponse.json({ 
       error: `Error procesando: ${error.message}` 
     }, { status: 500 });
