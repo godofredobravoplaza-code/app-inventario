@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, FileSignature, ScanLine, Settings, History, Trash2, LogOut } from 'lucide-react'
+import { LayoutDashboard, Package, FileSignature, ScanLine, Settings, History, Trash2, LogOut, Shield } from 'lucide-react'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -18,6 +18,7 @@ const navItems = [
 ]
 
 const adminItems = [
+  { name: 'Usuarios', href: '/admin/users', icon: Shield },
   { name: 'Auditoría', href: '/admin/audit-log', icon: History },
   { name: 'Mantenedores', href: '/admin/settings', icon: Settings },
   { name: 'Papelera', href: '/admin/trash', icon: Trash2 },

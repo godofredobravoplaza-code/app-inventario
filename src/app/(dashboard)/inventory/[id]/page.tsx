@@ -58,28 +58,36 @@ export default async function EquipmentHistoryPage({
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto mb-20">
-      <div className="flex items-center gap-4 mb-6">
-        <Link 
-          href="/inventory"
-          className="p-2 text-slate-400 hover:text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors border border-slate-800"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            Historial del Equipo
-            <span className={`text-xs px-2 py-1 rounded-full border ${
-              equipment.status === 'EN_BODEGA' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-              equipment.status === 'ASIGNADO' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-              'bg-amber-500/10 text-amber-400 border-amber-500/20'
-            }`}>
-              {equipment.status.replace(/_/g, ' ')}
-            </span>
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">
-            {equipment.brand} {equipment.model} - S/N: <span className="text-slate-300 font-mono">{equipment.serial_number}</span>
-          </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/inventory"
+            className="p-2 text-slate-400 hover:text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors border border-slate-800"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+              Historial del Equipo
+              <span className={`text-xs px-2 py-1 rounded-full border ${
+                equipment.status === 'EN_BODEGA' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                equipment.status === 'ASIGNADO' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                'bg-amber-500/10 text-amber-400 border-amber-500/20'
+              }`}>
+                {equipment.status.replace(/_/g, ' ')}
+              </span>
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">
+              {equipment.brand} {equipment.model} - S/N: <span className="text-slate-300 font-mono">{equipment.serial_number}</span>
+            </p>
+          </div>
         </div>
+        <Link
+          href={`/inventory/${equipment.id}/edit`}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-indigo-500 shrink-0"
+        >
+          Editar Equipo
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
