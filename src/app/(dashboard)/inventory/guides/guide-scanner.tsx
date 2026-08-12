@@ -90,14 +90,14 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
 
     if (isScanning) {
       // Usamos Html5Qrcode directo para saltarnos la interfaz defectuosa.
-      // Restringimos los formatos para evitar que lea las rejillas de ventilación como códigos de barras largos (EAN/ITF)
       html5QrCode = new Html5Qrcode("reader", {
         formatsToSupport: [
           Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.DATA_MATRIX,
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.CODE_39
-        ]
+        ],
+        verbose: false
       });
       scannerRef.current = html5QrCode;
 
