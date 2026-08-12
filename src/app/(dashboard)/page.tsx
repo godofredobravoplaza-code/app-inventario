@@ -1,6 +1,16 @@
 import { Package, Users, Laptop, Clock } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  const supabase = await createClient()
+
+  const [{ count: totalEquipos }, { count: enBodega }, { count: asignados }, { count: actas }] = await Promise.all([
+    supabase.from('inventory').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+    supabase.from('inventory').select('*', { count: 'exact', head: true }).eq('status', 'EN_BODEGA').is('deleted_at', null),
+    supabase.from('inventory').select('*', { count: 'exact', head: true }).eq('status', 'ASIGNADO').is('deleted_at', null),
+    supabase.from('der').select('*', { count: 'exact', head: true }).eq('status', 'DRAFT')
+  ])
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
       <div>
@@ -13,7 +23,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-medium text-slate-400">Total Equipos</p>
-              <h3 className="text-3xl font-bold text-white mt-1">245</h3>
+              <h3 className="text-3xl font-bold text-white mt-1">{totalEquipos || 0}</h3>
             </div>
             <div className="w-10 h-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
               <Laptop className="w-5 h-5 text-indigo-400" />
@@ -25,7 +35,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-medium text-slate-400">En Bodega</p>
-              <h3 className="text-3xl font-bold text-white mt-1">12</h3>
+              <h3 className="text-3xl font-bold text-white mt-1">{enBodega || 0}</h3>
             </div>
             <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
               <Package className="w-5 h-5 text-emerald-400" />
@@ -37,7 +47,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-medium text-slate-400">Asignados</p>
-              <h3 className="text-3xl font-bold text-white mt-1">233</h3>
+              <h3 className="text-3xl font-bold text-white mt-1">{asignados || 0}</h3>
             </div>
             <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
               <Users className="w-5 h-5 text-blue-400" />
@@ -49,7 +59,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-medium text-slate-400">Actas Pendientes</p>
-              <h3 className="text-3xl font-bold text-amber-400 mt-1">4</h3>
+              <h3 className="text-3xl font-bold text-amber-400 mt-1">{actas || 0}</h3>
             </div>
             <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
               <Clock className="w-5 h-5 text-amber-400" />
