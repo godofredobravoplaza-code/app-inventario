@@ -38,6 +38,17 @@ export async function POST(req: NextRequest) {
         displayName: file.name,
       });
 
+      // Esperar a que el archivo sea procesado por Google (requerido para PDFs)
+      let fileState = await fileManager.getFile(uploadResult.file.name);
+      while (fileState.state === 'PROCESSING') {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        fileState = await fileManager.getFile(uploadResult.file.name);
+      }
+      
+      if (fileState.state === 'FAILED') {
+        throw new Error('El procesamiento del PDF falló en los servidores de Google.');
+      }
+
       filePart = {
         fileData: {
           fileUri: uploadResult.file.uri,
@@ -96,7 +107,7 @@ export async function POST(req: NextRequest) {
         const availableModels = data.models ? data.models.map((m:any) => m.name.replace('models/', '')).join(', ') : 'Ninguno';
         
         return NextResponse.json({ 
-          error: `El modelo gemini-1.5-flash no está disponible en tu cuenta. Modelos disponibles para tu clave: ${availableModels}` 
+          error: `Error original: ${error.message} | Modelos disponibles en tu cuenta: ${availableModels}` 
         }, { status: 500 });
       } catch (e) {
         // fallthrough
