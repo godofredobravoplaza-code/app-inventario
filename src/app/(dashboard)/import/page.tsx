@@ -86,12 +86,15 @@ export default function ImportPage() {
         body: formData
       })
       
-      if (!res.ok) throw new Error('Error processing document')
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Error de red o servidor');
+      }
       const data = await res.json()
       setResult(data)
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      alert("Hubo un error procesando el archivo con IA.")
+      alert("Error: " + err.message)
     } finally {
       setIsProcessing(false)
     }
