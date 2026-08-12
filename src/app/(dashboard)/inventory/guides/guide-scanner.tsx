@@ -105,8 +105,7 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
         { facingMode: "environment" }, // Usa la cámara trasera por defecto
         {
           fps: 10,
-          // Eliminamos 'qrbox' para que el escáner utilice toda la pantalla y 
-          // pueda captar códigos QR/DataMatrix cuadrados que son muy pequeños.
+          qrbox: 250, // Caja cuadrada para enfocar el procesamiento y mejorar la velocidad en celulares
         },
         (decodedText) => {
           // Success callback
