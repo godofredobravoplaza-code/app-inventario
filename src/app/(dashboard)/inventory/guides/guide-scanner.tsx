@@ -102,7 +102,11 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
       scannerRef.current = html5QrCode;
 
       html5QrCode.start(
-        { facingMode: "environment" }, // Usa la cámara trasera por defecto
+        { 
+          facingMode: "environment",
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }, // Solicitamos resolución 1080p para mayor nitidez al alejar la cámara
         {
           fps: 10,
           qrbox: 150, // Caja más pequeña (150x150) para enfocar exactamente un solo código y evitar ruido
