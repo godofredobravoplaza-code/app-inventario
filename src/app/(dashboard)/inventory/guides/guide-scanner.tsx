@@ -101,11 +101,7 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
       scannerRef.current = html5QrCode;
 
       html5QrCode.start(
-        { 
-          facingMode: "environment",
-          width: { min: 640, ideal: 1280 }, // Resolución segura para evitar crasheos pero más alta que por defecto
-          height: { min: 480, ideal: 720 }
-        },
+        { facingMode: "environment" }, // Tu celular rechaza las resoluciones forzadas, volvemos a la estándar
         {
           fps: 10,
           qrbox: 200, // Un poco más grande para facilitar apuntar a distancia
