@@ -32,7 +32,14 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
       const html5QrCode = new Html5Qrcode("reader");
       const decodedText = await html5QrCode.scanFile(file, true); // true = showImage in the reader
       
-      const cleanText = decodedText.trim();
+      let cleanText = decodedText.trim().toUpperCase();
+      
+      // Auto-filtro para DataMatrix de Lenovo nuevos (S/N + MO)
+      // Ejemplo: pW0JVGYFPWN0B562600C (20 caracteres) -> PW0JVGYF (8 caracteres)
+      if (cleanText.length === 20) {
+        cleanText = cleanText.substring(0, 8);
+      }
+
       setScannedSerials(prev => {
         if (!prev.includes(cleanText)) {
           try {
@@ -149,7 +156,12 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
           qrbox: 200, // Un poco más grande para facilitar apuntar a distancia
         },
         (decodedText) => {
-          const cleanText = decodedText.trim()
+          let cleanText = decodedText.trim().toUpperCase()
+          
+          if (cleanText.length === 20) {
+            cleanText = cleanText.substring(0, 8);
+          }
+
           setScannedSerials(prev => {
             if (!prev.includes(cleanText)) {
               try {
