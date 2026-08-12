@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { ModelCatalogItem, EquipmentCategory, EquipmentStatus } from '@/lib/supabase/types'
-import { Camera, Save, Plus, AlertCircle, X, Check, ScanLine } from 'lucide-react'
+import { Camera, Save, Plus, AlertCircle, X, Check, ScanLine, Search } from 'lucide-react'
 
 // Para evitar problemas de SSR con Html5QrcodeScanner
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
@@ -89,7 +89,6 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
     let html5QrCode: Html5Qrcode | null = null;
 
     if (isScanning) {
-      // Usamos Html5Qrcode directo para saltarnos la interfaz defectuosa.
       html5QrCode = new Html5Qrcode("reader", {
         formatsToSupport: [
           Html5QrcodeSupportedFormats.QR_CODE,
@@ -102,17 +101,19 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
       scannerRef.current = html5QrCode;
 
       html5QrCode.start(
-        { facingMode: "environment" }, // Revertimos a configuración por defecto porque 1080p crasheó algunos dispositivos
+        { 
+          facingMode: "environment",
+          width: { min: 640, ideal: 1280 }, // Resolución segura para evitar crasheos pero más alta que por defecto
+          height: { min: 480, ideal: 720 }
+        },
         {
           fps: 10,
-          qrbox: 150, // Caja más pequeña (150x150) para enfocar exactamente un solo código y evitar ruido
+          qrbox: 200, // Un poco más grande para facilitar apuntar a distancia
         },
         (decodedText) => {
-          // Success callback
           const cleanText = decodedText.trim()
           setScannedSerials(prev => {
             if (!prev.includes(cleanText)) {
-              // Play a beep sound
               try {
                 const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
                 const osc = ctx.createOscillator()
@@ -129,9 +130,7 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
             return prev
           })
         },
-        (errorMessage) => {
-          // Ignoramos errores de escaneo continuo
-        }
+        (errorMessage) => {}
       ).catch((err) => {
         console.error("No se pudo iniciar la cámara", err);
         setError("Error al iniciar cámara: " + (err?.message || "Permiso denegado"));
@@ -151,6 +150,19 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
 
   const handleStopScanning = () => {
     setIsScanning(false)
+  }
+
+  const handleApplyZoom = async () => {
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      try {
+        await scannerRef.current.applyVideoConstraints({
+          advanced: [{ zoom: 2.0 } as any]
+        });
+      } catch (err) {
+        console.warn("Zoom no soportado nativamente:", err);
+        alert("Tu navegador/celular no permite forzar el zoom desde la web.");
+      }
+    }
   }
 
   const handleRemoveSerial = (serial: string) => {
@@ -407,12 +419,22 @@ export default function GuideScanner({ initialCatalog }: GuideScannerProps) {
                 Iniciar Cámara
               </button>
             ) : (
-              <button
-                onClick={handleStopScanning}
-                className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                Detener
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleApplyZoom}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                  title="Acercar 2x (si tu dispositivo lo soporta)"
+                >
+                  <Search className="w-4 h-4" />
+                  Zoom 2x
+                </button>
+                <button
+                  onClick={handleStopScanning}
+                  className="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Detener
+                </button>
+              </div>
             )}
           </div>
 
