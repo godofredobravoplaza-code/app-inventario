@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FileUp, FileText, Brain, UploadCloud, FileSpreadsheet, Loader2, CheckCircle2 } from 'lucide-react'
+import { FileUp, FileText, Brain, UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react'
 
 import { createClient } from '@/lib/supabase/client'
 
@@ -10,6 +10,12 @@ export default function ImportPage() {
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [result, setResult] = useState<any>(null)
+  
+  // Conflict and Renewal states
+  const [conflicts, setConflicts] = useState<any[]>([])
+  const [oldEquipments, setOldEquipments] = useState<any[]>([])
+  const [conflictDecisions, setConflictDecisions] = useState<Record<string, any>>({})
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -95,6 +101,45 @@ export default function ImportPage() {
         throw new Error(errorData.error || 'Error de red o servidor');
       }
       const data = await res.json()
+      
+      // Data crossing with Supabase (Conflicts and Renewals)
+      const supabase = createClient()
+      const serials = data.items?.map((i: any) => i.serial).filter(Boolean) || []
+      
+      let foundConflicts = []
+      let foundOldEquipments = []
+      
+      if (serials.length > 0) {
+        const { data: existingEquipments } = await supabase
+          .from('inventory')
+          .select('*')
+          .in('serial_number', serials)
+        
+        if (existingEquipments && existingEquipments.length > 0) {
+          foundConflicts = existingEquipments
+        }
+      }
+      
+      if (data.rut) {
+        // Find if user already has an equipment of the same category
+        const categories = Array.from(new Set(data.items?.map((i:any) => (i.category || i.type)?.toUpperCase()).filter(Boolean)))
+        if (categories.length > 0) {
+          const { data: userEquipments } = await supabase
+            .from('inventory')
+            .select('*')
+            .eq('current_user_rut', data.rut)
+            .in('category', categories)
+          
+          if (userEquipments && userEquipments.length > 0) {
+            // Filter out those that are part of the new document to avoid self-conflicts
+            foundOldEquipments = userEquipments.filter(ue => !serials.includes(ue.serial_number))
+          }
+        }
+      }
+
+      setConflicts(foundConflicts)
+      setOldEquipments(foundOldEquipments)
+      setConflictDecisions({})
       setResult(data)
     } catch (err: any) {
       console.error(err)
@@ -120,7 +165,10 @@ export default function ImportPage() {
         user_name: result.userName || '',
         user_rut: result.rut || '',
         status: 'DRAFT',
-        form_data: result,
+        form_data: {
+          ...result,
+          conflictDecisions // Include decisions made in UI
+        },
         created_by: user.id
       };
 
@@ -133,6 +181,9 @@ export default function ImportPage() {
       alert("Borrador guardado exitosamente. Podrás completarlo en la sección de DER.");
       setResult(null);
       setFile(null);
+      setConflicts([]);
+      setOldEquipments([]);
+      setConflictDecisions({});
     } catch (err: any) {
       console.error(err);
       alert("Error al guardar borrador: " + err.message);
@@ -228,6 +279,18 @@ export default function ImportPage() {
             </h3>
             
             <div className="bg-slate-950 rounded-xl p-6 border border-slate-800 space-y-6">
+              {(conflicts.length > 0 || oldEquipments.length > 0) && (
+                <div className="bg-amber-500/10 border border-amber-500/50 rounded-xl p-4 flex items-start mb-6">
+                  <AlertTriangle className="w-5 h-5 text-amber-500 mr-3 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-amber-500 text-sm">Se requiere tu decisión</h4>
+                    <p className="text-xs text-amber-500/80 mt-1">
+                      Hemos detectado equipos que ya existen o renovaciones. Haz clic en las advertencias de la tabla para decidir qué hacer antes de guardar el borrador.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <label className="text-xs text-slate-500 uppercase font-bold tracking-wider">Usuario / Asignado a</label>
@@ -258,19 +321,71 @@ export default function ImportPage() {
                           <th className="px-4 py-2">Marca</th>
                           <th className="px-4 py-2">Modelo</th>
                           <th className="px-4 py-2">Serie / IMEI</th>
-                          <th className="px-4 py-2 rounded-tr-lg">Hostname</th>
+                          <th className="px-4 py-2">Hostname</th>
+                          <th className="px-4 py-2 rounded-tr-lg">Estado / Decisión</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {result.items.map((item: any, i: number) => (
-                          <tr key={i} className="border-b border-slate-800/50">
-                            <td className="px-4 py-3 text-slate-300">{item.type || item.category}</td>
-                            <td className="px-4 py-3 text-white font-medium">{item.brand}</td>
-                            <td className="px-4 py-3 text-slate-300">{item.model}</td>
-                            <td className="px-4 py-3 text-emerald-400 font-mono">{item.serial}</td>
-                            <td className="px-4 py-3 text-indigo-400 font-mono">{item.hostname || '-'}</td>
-                          </tr>
-                        ))}
+                        {result.items.map((item: any, i: number) => {
+                          const conflict = conflicts.find(c => c.serial_number === item.serial);
+                          const oldEq = oldEquipments.find(oe => (oe.category || '').toUpperCase() === (item.category || item.type || '').toUpperCase());
+                          
+                          const decision = conflictDecisions[item.serial] || conflictDecisions[item.category || item.type];
+                          
+                          return (
+                            <tr key={i} className="border-b border-slate-800/50">
+                              <td className="px-4 py-3 text-slate-300">{item.type || item.category}</td>
+                              <td className="px-4 py-3 text-white font-medium">{item.brand}</td>
+                              <td className="px-4 py-3 text-slate-300">{item.model}</td>
+                              <td className="px-4 py-3 font-mono">
+                                <span className="text-emerald-400">{item.serial}</span>
+                              </td>
+                              <td className="px-4 py-3 text-indigo-400 font-mono">{item.hostname || '-'}</td>
+                              <td className="px-4 py-3">
+                                {conflict ? (
+                                  <div className="flex flex-col gap-2">
+                                    <span className="text-xs px-2 py-1 bg-amber-500/20 text-amber-500 rounded font-medium inline-block w-fit">
+                                      ⚠️ Serie duplicada
+                                    </span>
+                                    <select 
+                                      className="text-xs bg-slate-800 text-white border border-slate-700 rounded p-1 w-full max-w-[200px]"
+                                      value={decision?.action || ''}
+                                      onChange={(e) => setConflictDecisions(prev => ({
+                                        ...prev, 
+                                        [item.serial]: { type: 'CONFLICT', action: e.target.value, existingId: conflict.id }
+                                      }))}
+                                    >
+                                      <option value="">-- Elige una acción --</option>
+                                      <option value="REASSIGN">Reasignar equipo existente</option>
+                                      <option value="IGNORE">No importar este equipo</option>
+                                    </select>
+                                  </div>
+                                ) : oldEq ? (
+                                  <div className="flex flex-col gap-2">
+                                    <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded font-medium inline-block w-fit">
+                                      🔄 Renovación detectada
+                                    </span>
+                                    <select 
+                                      className="text-xs bg-slate-800 text-white border border-slate-700 rounded p-1 w-full max-w-[250px]"
+                                      value={decision?.oldEquipmentAction || ''}
+                                      onChange={(e) => setConflictDecisions(prev => ({
+                                        ...prev, 
+                                        [item.category || item.type]: { type: 'RENEWAL', oldEquipmentAction: e.target.value, oldEquipmentId: oldEq.id }
+                                      }))}
+                                    >
+                                      <option value="">-- ¿Qué hacer con el equipo antiguo? --</option>
+                                      <option value="EN_BODEGA">Pasarlo a Disponible (Bodega)</option>
+                                      <option value="POR_DEVOLVER">Por devolver al proveedor</option>
+                                      <option value="NONE">No hacer nada con el antiguo</option>
+                                    </select>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-slate-500">Nuevo Equipo</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
