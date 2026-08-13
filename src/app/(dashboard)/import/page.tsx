@@ -192,6 +192,136 @@ export default function ImportPage() {
     }
   }
 
+  const handleImportOfficial = async () => {
+    if (!result) return;
+    setIsProcessing(true);
+    
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("Usuario no autenticado");
+      }
+
+      // Upsert User (Employee)
+      if (result.rut) {
+        await supabase.from('employees').upsert({
+          rut: result.rut,
+          full_name: result.userName || '',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'rut' });
+      }
+
+      const equipmentIds: string[] = [];
+
+      // Procesar equipos
+      for (const item of (result.items || [])) {
+        const decision = conflictDecisions[item.serial] || conflictDecisions[item.category || item.type];
+        
+        // 1. Manejo de Conflictos de Serie
+        if (decision?.type === 'CONFLICT' && decision?.action === 'IGNORE') {
+          continue; // Saltar este equipo
+        }
+
+        let equipmentId = null;
+
+        if (decision?.type === 'CONFLICT' && decision?.action === 'REASSIGN') {
+          // Reasignar equipo existente
+          equipmentId = decision.existingId;
+          const { error: eqError } = await supabase.from('inventory').update({
+            status: 'ASIGNADO',
+            current_user_name: result.userName,
+            current_user_rut: result.rut,
+            assignment_ticket: result.ticketNumber || null
+          }).eq('id', equipmentId);
+          if (eqError) throw eqError;
+
+        } else {
+          // Equipo Nuevo
+          const { data: newEq, error: eqError } = await supabase.from('inventory').insert({
+            category: (item.type || item.category || 'OTRO').toUpperCase(),
+            brand: item.brand || 'Desconocida',
+            model: item.model || 'Desconocido',
+            serial_number: item.serial || 'S/N',
+            hostname: item.hostname || null,
+            status: 'ASIGNADO',
+            current_user_name: result.userName,
+            current_user_rut: result.rut,
+            assignment_ticket: result.ticketNumber || null,
+            created_by: user.id
+          }).select().single();
+          
+          if (eqError) throw eqError;
+          equipmentId = newEq.id;
+        }
+
+        if (equipmentId) {
+          equipmentIds.push(equipmentId);
+          // Audit Log de Asignación
+          await supabase.from('audit_logs').insert({
+            equipment_id: equipmentId,
+            performed_by: user.id,
+            action_type: 'EQUIPMENT_ASSIGNED_IMPORT',
+            new_data: { status: 'ASIGNADO', current_user_name: result.userName, ticket: result.ticketNumber }
+          });
+        }
+
+        // 2. Manejo de Renovaciones (Equipo Antiguo)
+        if (decision?.type === 'RENEWAL' && decision?.oldEquipmentAction && decision.oldEquipmentAction !== 'NONE') {
+          const { error: oldEqError } = await supabase.from('inventory').update({
+            status: decision.oldEquipmentAction,
+            current_user_name: null,
+            current_user_rut: null,
+            current_user_account: null
+          }).eq('id', decision.oldEquipmentId);
+
+          if (!oldEqError) {
+            await supabase.from('audit_logs').insert({
+              equipment_id: decision.oldEquipmentId,
+              performed_by: user.id,
+              action_type: 'EQUIPMENT_RETURNED_RENEWAL',
+              new_data: { status: decision.oldEquipmentAction }
+            });
+          }
+        }
+      }
+
+      // Crear registro DER Definitivo
+      const draftData = {
+        ticket_number: result.ticketNumber || 'S/N',
+        user_name: result.userName || '',
+        user_rut: result.rut || '',
+        status: 'COMPLETED',
+        form_data: {
+          ...result,
+          conflictDecisions,
+          imported_officially: true,
+          imported_equipment_ids: equipmentIds
+        },
+        created_by: user.id
+      };
+
+      const { error: derError } = await supabase
+        .from('der_records')
+        .insert([draftData]);
+
+      if (derError) throw derError;
+      
+      alert("¡Importación Oficial exitosa! Los equipos ya están en el inventario oficial.");
+      setResult(null);
+      setFile(null);
+      setConflicts([]);
+      setOldEquipments([]);
+      setConflictDecisions({});
+    } catch (err: any) {
+      console.error(err);
+      alert("Error al importar oficialmente: " + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8">
       <div>
@@ -395,18 +525,33 @@ export default function ImportPage() {
               </div>
             </div>
             
-            <div className="mt-6 flex justify-end space-x-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4 border-t border-slate-800">
               <button
-                onClick={() => setResult(null)}
-                className="px-6 py-2 rounded-lg text-slate-400 hover:text-white transition-colors"
+                onClick={() => {
+                  setResult(null);
+                  setFile(null);
+                  setConflicts([]);
+                  setOldEquipments([]);
+                  setConflictDecisions({});
+                }}
+                className="px-6 py-2 rounded-lg text-slate-300 font-medium hover:bg-slate-800 transition-colors"
+                disabled={isProcessing}
               >
-                Descartar
+                Cancelar
               </button>
               <button
                 onClick={handleSaveToDrafts}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                disabled={isProcessing}
+                className="px-6 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 Guardar en Borradores
+              </button>
+              <button
+                onClick={handleImportOfficial}
+                disabled={isProcessing}
+                className="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+              >
+                Importar Definitivamente <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
