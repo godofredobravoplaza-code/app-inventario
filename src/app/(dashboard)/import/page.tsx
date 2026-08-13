@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { FileUp, FileText, Brain, UploadCloud, FileSpreadsheet, Loader2, CheckCircle2 } from 'lucide-react'
 
+import { createClient } from '@/lib/supabase/client'
+
 export default function ImportPage() {
   const [activeTab, setActiveTab] = useState<'excel' | 'ai'>('excel')
   const [file, setFile] = useState<File | null>(null)
@@ -35,6 +37,8 @@ export default function ImportPage() {
         const extracted = {
           userName: '',
           rut: '',
+          receptionDate: '',
+          ticketNumber: '',
           items: [] as any[]
         }
         
@@ -101,8 +105,40 @@ export default function ImportPage() {
   }
 
   const handleSaveToDrafts = async () => {
-    // Implement save logic to supabase der_records as DRAFT
-    alert("Borrador guardado! (Lógica en construcción)")
+    if (!result) return;
+    setIsProcessing(true);
+    try {
+      const supabase = createClient();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error("No se pudo verificar la sesión activa.");
+      }
+
+      const draftData = {
+        ticket_number: result.ticketNumber || 'S/N',
+        user_name: result.userName || '',
+        user_rut: result.rut || '',
+        status: 'DRAFT',
+        form_data: result,
+        created_by: user.id
+      };
+
+      const { error } = await supabase
+        .from('der_records')
+        .insert([draftData]);
+
+      if (error) throw error;
+      
+      alert("Borrador guardado exitosamente. Podrás completarlo en la sección de DER.");
+      setResult(null);
+      setFile(null);
+    } catch (err: any) {
+      console.error(err);
+      alert("Error al guardar borrador: " + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   return (
