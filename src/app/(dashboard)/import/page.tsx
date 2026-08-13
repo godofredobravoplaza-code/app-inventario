@@ -249,9 +249,37 @@ export default function ImportPage() {
             status: 'ASIGNADO',
             current_user_name: result.userName,
             current_user_rut: result.rut,
-            assignment_ticket: result.ticketNumber || null
+            assignment_ticket: result.ticketNumber || null,
+            ...(result.receptionDate ? { assignment_date: result.receptionDate } : {})
           }).eq('id', equipmentId);
           if (eqError) throw eqError;
+
+        } else if (decision?.type === 'CONFLICT' && decision?.action === 'UPDATE_MISSING_DATA') {
+          equipmentId = decision.existingId;
+          
+          let updatePayload: any = {};
+          
+          if (documentType === 'RECEPTION' && result.receptionDate) {
+            updatePayload.reception_date = result.receptionDate;
+            
+            // Calculate leasing months automatically based on reception date
+            const recDate = new Date(result.receptionDate);
+            const now = new Date();
+            const diffMonths = (now.getFullYear() - recDate.getFullYear()) * 12 + (now.getMonth() - recDate.getMonth());
+            updatePayload.months_in_operation = Math.max(0, diffMonths);
+          } else if (documentType === 'RETURN' && result.receptionDate) {
+            updatePayload.return_date = result.receptionDate;
+            updatePayload.status = 'POR_DEVOLVER';
+            updatePayload.current_user_name = null;
+            updatePayload.current_user_rut = null;
+          } else if (documentType === 'DER' && result.receptionDate) {
+            updatePayload.assignment_date = result.receptionDate;
+          }
+
+          if (Object.keys(updatePayload).length > 0) {
+            const { error: eqError } = await supabase.from('inventory').update(updatePayload).eq('id', equipmentId);
+            if (eqError) throw eqError;
+          }
 
         } else {
           // Equipo Nuevo
@@ -318,12 +346,14 @@ export default function ImportPage() {
           user_rut: result.rut || '',
           equipment_id: eqId,
           status: 'COMPLETED',
+          document_type: documentType, // 'DER', 'RECEPTION', 'RETURN'
           drive_file_url: fileName,
           form_data: {
             ...result,
             conflictDecisions,
             imported_officially: true,
-            imported_equipment_id: eqId
+            imported_equipment_id: eqId,
+            documentType: documentType
           },
           created_by: user.id
         };

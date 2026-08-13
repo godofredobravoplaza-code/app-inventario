@@ -32,6 +32,8 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
   
   // Date calculation states
   const [receptionDate, setReceptionDate] = useState(equipment.reception_date || '')
+  const [assignmentDate, setAssignmentDate] = useState(equipment.assignment_date || '')
+  const [returnDate, setReturnDate] = useState(equipment.return_date || '')
   const [months, setMonths] = useState(equipment.months_in_operation?.toString() || '')
 
   const handleDateChange = (dateStr: string) => {
@@ -87,6 +89,8 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
         status,
         comments,
         reception_date: receptionDate || null,
+        assignment_date: assignmentDate || null,
+        return_date: returnDate || null,
         months_in_operation: months ? parseInt(months, 10) : 0,
         current_user_name: currentUserName || null,
         current_user_rut: currentUserRut || null,
@@ -108,7 +112,9 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
       action_type: 'EQUIPMENT_UPDATED',
       new_data: { 
         category, brand, model, serial_number: serialNumber, hostname, asset_tag: assetTag,
-        ram, storage, status, comments, reception_date: receptionDate, months_in_operation: months,
+        ram, storage, status, comments, reception_date: receptionDate, 
+        assignment_date: assignmentDate, return_date: returnDate,
+        months_in_operation: months,
         current_user_name: currentUserName, current_user_rut: currentUserRut, 
         current_user_account: currentUserAccount, assignment_ticket: assignmentTicket
       }
@@ -282,6 +288,24 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
               placeholder="Ej: 14"
             />
             <p className="text-xs text-slate-500 mt-1">Calcula la fecha hacia atrás automáticamente</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Fecha de Asignación (Último DER)</label>
+            <input 
+              type="date"
+              value={assignmentDate}
+              onChange={e => setAssignmentDate(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Fecha de Devolución</label>
+            <input 
+              type="date"
+              value={returnDate}
+              onChange={e => setReturnDate(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
           </div>
         </div>
 

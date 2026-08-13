@@ -146,44 +146,64 @@ export default async function EquipmentHistoryPage({
         </div>
 
         <div className="md:col-span-2 space-y-6">
-          {/* Actas DER */}
+          {/* Historial de Documentos */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
             <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
               <FileText className="w-5 h-5 text-emerald-400" />
-              Documentos de Entrega (DER)
+              Historial de Documentos
             </h3>
             
             {(!derRecords || derRecords.length === 0) ? (
               <div className="text-center py-6 text-slate-500 bg-slate-950/50 rounded-lg border border-slate-800/50">
-                Este equipo aún no tiene actas DER generadas.
+                Este equipo aún no tiene documentos registrados.
               </div>
             ) : (
               <div className="space-y-3">
-                {derRecords.map(der => (
-                  <div key={der.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-slate-950/50 border border-slate-800 rounded-lg">
-                    <div>
-                      <div className="text-white font-medium flex items-center gap-2">
-                        {der.user_name} 
-                        <span className="text-xs px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full">
-                          Ticket {der.ticket_number}
-                        </span>
+                {derRecords.map(der => {
+                  let docTypeLabel = 'Acta DER';
+                  let docTypeColor = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+                  
+                  if (der.document_type === 'RECEPTION') {
+                    docTypeLabel = 'Guía de Recepción';
+                    docTypeColor = 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+                  } else if (der.document_type === 'RETURN') {
+                    docTypeLabel = 'Guía de Devolución';
+                    docTypeColor = 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+                  }
+
+                  return (
+                    <div key={der.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-slate-950/50 border border-slate-800 rounded-lg">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-xs px-2 py-0.5 rounded-md border ${docTypeColor}`}>
+                            {docTypeLabel}
+                          </span>
+                        </div>
+                        <div className="text-white font-medium flex items-center gap-2">
+                          {der.user_name || 'Sin Asignatario'} 
+                          {der.ticket_number && (
+                            <span className="text-xs px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full">
+                              Ticket {der.ticket_number}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-slate-500 text-xs mt-1">
+                          {new Date(der.created_at).toLocaleString()}
+                        </div>
                       </div>
-                      <div className="text-slate-500 text-xs mt-1">
-                        {new Date(der.created_at).toLocaleString()}
-                      </div>
+                      {der.drive_file_url && (
+                        <a 
+                          href={`/api/pdf/${der.drive_file_url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 sm:mt-0 inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Ver PDF <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
                     </div>
-                    {der.drive_file_url && (
-                      <a 
-                        href={`/api/pdf/${der.drive_file_url}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 sm:mt-0 inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                      >
-                        Ver PDF <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
