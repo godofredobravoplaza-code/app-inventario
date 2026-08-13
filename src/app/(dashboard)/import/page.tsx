@@ -249,7 +249,8 @@ export default function ImportPage() {
             current_user_name: result.userName,
             current_user_rut: result.rut,
             assignment_ticket: result.ticketNumber || null,
-            created_by: user.id
+            created_by: user.id,
+            ...(result.receptionDate ? { created_at: new Date(result.receptionDate).toISOString() } : {})
           }).select().single();
           
           if (eqError) throw eqError;
@@ -510,7 +511,9 @@ export default function ImportPage() {
                                     </select>
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-slate-500">Nuevo Equipo</span>
+                                  <span className="text-xs px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded font-medium border border-emerald-500/20 inline-flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" /> Se registrará como Asignado
+                                  </span>
                                 )}
                               </td>
                             </tr>
