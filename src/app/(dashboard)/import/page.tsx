@@ -11,6 +11,9 @@ export default function ImportPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [result, setResult] = useState<any>(null)
   
+  // Document Type state
+  const [documentType, setDocumentType] = useState<'DER' | 'RECEPTION' | 'RETURN'>('DER')
+  
   // Conflict and Renewal states
   const [conflicts, setConflicts] = useState<any[]>([])
   const [oldEquipments, setOldEquipments] = useState<any[]>([])
@@ -239,17 +242,23 @@ export default function ImportPage() {
 
         } else {
           // Equipo Nuevo
+          let statusStr = 'ASIGNADO';
+          if (documentType === 'RECEPTION') statusStr = 'EN_BODEGA';
+          else if (documentType === 'RETURN') statusStr = 'POR_DEVOLVER';
+
           const { data: newEq, error: eqError } = await supabase.from('inventory').insert({
             category: (item.type || item.category || 'OTRO').toUpperCase(),
             brand: item.brand || 'Desconocida',
             model: item.model || 'Desconocido',
             serial_number: item.serial || 'S/N',
             hostname: item.hostname || null,
-            status: 'ASIGNADO',
-            current_user_name: result.userName,
-            current_user_rut: result.rut,
-            assignment_ticket: result.ticketNumber || null,
+            status: statusStr,
+            current_user_name: documentType === 'DER' ? result.userName : null,
+            current_user_rut: documentType === 'DER' ? result.rut : null,
+            assignment_ticket: documentType === 'DER' ? (result.ticketNumber || null) : null,
             created_by: user.id,
+            ...(documentType === 'RECEPTION' && result.receptionDate ? { reception_date: result.receptionDate } : {}),
+            // Si es DER histórico o Guía, guardamos la fecha de creación en base a la fecha del documento
             ...(result.receptionDate ? { created_at: new Date(result.receptionDate).toISOString() } : {})
           }).select().single();
           
@@ -378,9 +387,26 @@ export default function ImportPage() {
           </label>
           
           {file && (
-            <div className="mt-6 flex items-center text-emerald-400 bg-emerald-400/10 px-4 py-2 rounded-lg">
-              <FileText className="w-4 h-4 mr-2" />
-              <span className="text-sm font-medium">{file.name}</span>
+            <div className="mt-6 flex flex-col items-center">
+              <div className="flex items-center text-emerald-400 bg-emerald-400/10 px-4 py-2 rounded-lg mb-4">
+                <FileText className="w-4 h-4 mr-2" />
+                <span className="text-sm font-medium">{file.name}</span>
+              </div>
+              
+              {!result && activeTab === 'ai' && (
+                <div className="w-full max-w-sm mt-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">¿Qué tipo de documento es?</label>
+                  <select 
+                    value={documentType}
+                    onChange={(e) => setDocumentType(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white"
+                  >
+                    <option value="DER">Acta de Asignación / DER</option>
+                    <option value="RECEPTION">Guía de Despacho (Recepción)</option>
+                    <option value="RETURN">Guía de Devolución</option>
+                  </select>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -512,7 +538,7 @@ export default function ImportPage() {
                                   </div>
                                 ) : (
                                   <span className="text-xs px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded font-medium border border-emerald-500/20 inline-flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" /> Se registrará como Asignado
+                                    <CheckCircle2 className="w-3 h-3" /> Se registrará como {documentType === 'RECEPTION' ? 'En Bodega' : documentType === 'RETURN' ? 'Por Devolver' : 'Asignado'}
                                   </span>
                                 )}
                               </td>

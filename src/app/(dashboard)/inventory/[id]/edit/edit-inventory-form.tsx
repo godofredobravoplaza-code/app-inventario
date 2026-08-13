@@ -19,6 +19,34 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
   const [storage, setStorage] = useState(equipment.storage_gb?.toString() || '')
   const [status, setStatus] = useState(equipment.status || 'EN_BODEGA')
   const [comments, setComments] = useState(equipment.comments || '')
+  
+  // Date calculation states
+  const [receptionDate, setReceptionDate] = useState(equipment.reception_date || '')
+  const [months, setMonths] = useState(equipment.months_in_operation?.toString() || '')
+
+  const handleDateChange = (dateStr: string) => {
+    setReceptionDate(dateStr)
+    if (!dateStr) {
+      setMonths('')
+      return
+    }
+    const recDate = new Date(dateStr)
+    const now = new Date()
+    const diffMonths = (now.getFullYear() - recDate.getFullYear()) * 12 + (now.getMonth() - recDate.getMonth())
+    setMonths(Math.max(0, diffMonths).toString())
+  }
+
+  const handleMonthsChange = (monthsStr: string) => {
+    setMonths(monthsStr)
+    if (!monthsStr || isNaN(parseInt(monthsStr, 10))) {
+      setReceptionDate('')
+      return
+    }
+    const m = parseInt(monthsStr, 10)
+    const now = new Date()
+    now.setMonth(now.getMonth() - m)
+    setReceptionDate(now.toISOString().split('T')[0]) // YYYY-MM-DD
+  }
 
   const availableBrands = Array.from(new Set(catalog.filter(c => c.category === category).map(c => c.brand))).sort()
   const availableModels = Array.from(new Set(catalog.filter(c => c.category === category && c.brand === brand).map(c => c.model))).sort()
@@ -44,7 +72,9 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
         ram_gb: ram ? parseInt(ram, 10) : null,
         storage_gb: storage ? parseInt(storage, 10) : null,
         status,
-        comments
+        comments,
+        reception_date: receptionDate || null,
+        months_in_operation: months ? parseInt(months, 10) : 0
       })
       .eq('id', equipment.id)
 
@@ -59,7 +89,7 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
       equipment_id: equipment.id,
       performed_by: user.id,
       action_type: 'EQUIPMENT_UPDATED',
-      new_data: { category, brand, model, ram, storage, status, comments }
+      new_data: { category, brand, model, ram, storage, status, comments, reception_date: receptionDate, months_in_operation: months }
     })
 
     router.push(`/inventory/${equipment.id}`)
@@ -175,6 +205,30 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
             </div>
           </>
         ) : null}
+        
+        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-950/50 p-4 rounded-lg border border-slate-800">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Fecha de Llegada (Recepción)</label>
+            <input 
+              type="date"
+              value={receptionDate}
+              onChange={e => handleDateChange(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+            <p className="text-xs text-slate-500 mt-1">Calcula los meses automáticamente</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Meses en Operación (Leasing)</label>
+            <input 
+              type="number" 
+              value={months}
+              onChange={e => handleMonthsChange(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+              placeholder="Ej: 14"
+            />
+            <p className="text-xs text-slate-500 mt-1">Calcula la fecha hacia atrás automáticamente</p>
+          </div>
+        </div>
       </div>
 
       <div>
