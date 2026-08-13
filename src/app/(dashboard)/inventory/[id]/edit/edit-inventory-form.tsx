@@ -15,10 +15,20 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
   const [category, setCategory] = useState(equipment.category || 'LAPTOP')
   const [brand, setBrand] = useState(equipment.brand || '')
   const [model, setModel] = useState(equipment.model || '')
+  const [serialNumber, setSerialNumber] = useState(equipment.serial_number || '')
+  const [hostname, setHostname] = useState(equipment.hostname || '')
+  const [assetTag, setAssetTag] = useState(equipment.asset_tag || '')
+  
   const [ram, setRam] = useState(equipment.ram_gb?.toString() || '')
   const [storage, setStorage] = useState(equipment.storage_gb?.toString() || '')
   const [status, setStatus] = useState(equipment.status || 'EN_BODEGA')
   const [comments, setComments] = useState(equipment.comments || '')
+
+  // User Assignment states
+  const [currentUserName, setCurrentUserName] = useState(equipment.current_user_name || '')
+  const [currentUserRut, setCurrentUserRut] = useState(equipment.current_user_rut || '')
+  const [currentUserAccount, setCurrentUserAccount] = useState(equipment.current_user_account || '')
+  const [assignmentTicket, setAssignmentTicket] = useState(equipment.assignment_ticket || '')
   
   // Date calculation states
   const [receptionDate, setReceptionDate] = useState(equipment.reception_date || '')
@@ -69,12 +79,19 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
         category,
         brand,
         model,
+        serial_number: serialNumber || null,
+        hostname: hostname || null,
+        asset_tag: assetTag || null,
         ram_gb: ram ? parseInt(ram, 10) : null,
         storage_gb: storage ? parseInt(storage, 10) : null,
         status,
         comments,
         reception_date: receptionDate || null,
-        months_in_operation: months ? parseInt(months, 10) : 0
+        months_in_operation: months ? parseInt(months, 10) : 0,
+        current_user_name: currentUserName || null,
+        current_user_rut: currentUserRut || null,
+        current_user_account: currentUserAccount || null,
+        assignment_ticket: assignmentTicket || null
       })
       .eq('id', equipment.id)
 
@@ -89,7 +106,12 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
       equipment_id: equipment.id,
       performed_by: user.id,
       action_type: 'EQUIPMENT_UPDATED',
-      new_data: { category, brand, model, ram, storage, status, comments, reception_date: receptionDate, months_in_operation: months }
+      new_data: { 
+        category, brand, model, serial_number: serialNumber, hostname, asset_tag: assetTag,
+        ram, storage, status, comments, reception_date: receptionDate, months_in_operation: months,
+        current_user_name: currentUserName, current_user_rut: currentUserRut, 
+        current_user_account: currentUserAccount, assignment_ticket: assignmentTicket
+      }
     })
 
     router.push(`/inventory/${equipment.id}`)
@@ -181,6 +203,39 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
           </select>
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Número de Serie (S/N)</label>
+          <input 
+            type="text" 
+            value={serialNumber}
+            onChange={e => setSerialNumber(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+            placeholder="Ej: PF123456"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Hostname</label>
+          <input 
+            type="text" 
+            value={hostname}
+            onChange={e => setHostname(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+            placeholder="Ej: CL-PC-01"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Rótulo / Asset Tag</label>
+          <input 
+            type="text" 
+            value={assetTag}
+            onChange={e => setAssetTag(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+            placeholder="Opcional"
+          />
+        </div>
+
         {category === 'LAPTOP' || category === 'DESKTOP' || category === 'SERVER' ? (
           <>
             <div>
@@ -227,6 +282,52 @@ export default function EditInventoryForm({ equipment, catalog }: { equipment: a
               placeholder="Ej: 14"
             />
             <p className="text-xs text-slate-500 mt-1">Calcula la fecha hacia atrás automáticamente</p>
+          </div>
+        </div>
+
+        <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-800">
+          <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Asignación Actual</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Nombre del Usuario</label>
+              <input 
+                type="text" 
+                value={currentUserName}
+                onChange={e => setCurrentUserName(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                placeholder="Ej: Juan Pérez"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">RUT del Usuario</label>
+              <input 
+                type="text" 
+                value={currentUserRut}
+                onChange={e => setCurrentUserRut(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                placeholder="Ej: 12.345.678-9"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Cuenta/Correo del Usuario</label>
+              <input 
+                type="text" 
+                value={currentUserAccount}
+                onChange={e => setCurrentUserAccount(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                placeholder="Ej: jperez@empresa.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Ticket de Asignación</label>
+              <input 
+                type="text" 
+                value={assignmentTicket}
+                onChange={e => setAssignmentTicket(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                placeholder="Ej: WO00000014620"
+              />
+            </div>
           </div>
         </div>
       </div>

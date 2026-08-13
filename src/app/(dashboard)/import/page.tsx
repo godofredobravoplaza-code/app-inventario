@@ -216,6 +216,19 @@ export default function ImportPage() {
         }, { onConflict: 'rut' });
       }
 
+      let fileName = null;
+      if (file) {
+        fileName = `${Date.now()}_IMPORT_${result.ticketNumber || 'SN'}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('actas_der')
+          .upload(fileName, file, { cacheControl: '3600', upsert: false });
+          
+        if (uploadError) {
+          console.warn("No se pudo subir el archivo PDF/Imagen a Storage:", uploadError);
+          fileName = null;
+        }
+      }
+
       const equipmentIds: string[] = [];
 
       // Procesar equipos
@@ -297,26 +310,30 @@ export default function ImportPage() {
         }
       }
 
-      // Crear registro DER Definitivo
-      const draftData = {
-        ticket_number: result.ticketNumber || 'S/N',
-        user_name: result.userName || '',
-        user_rut: result.rut || '',
-        status: 'COMPLETED',
-        form_data: {
-          ...result,
-          conflictDecisions,
-          imported_officially: true,
-          imported_equipment_ids: equipmentIds
-        },
-        created_by: user.id
-      };
+      // Crear registros DER Definitivos por cada equipo
+      for (const eqId of equipmentIds) {
+        const draftData = {
+          ticket_number: result.ticketNumber || 'S/N',
+          user_name: result.userName || '',
+          user_rut: result.rut || '',
+          equipment_id: eqId,
+          status: 'COMPLETED',
+          drive_file_url: fileName,
+          form_data: {
+            ...result,
+            conflictDecisions,
+            imported_officially: true,
+            imported_equipment_id: eqId
+          },
+          created_by: user.id
+        };
 
-      const { error: derError } = await supabase
-        .from('der_records')
-        .insert([draftData]);
+        const { error: derError } = await supabase
+          .from('der_records')
+          .insert([draftData]);
 
-      if (derError) throw derError;
+        if (derError) throw derError;
+      }
       
       alert("¡Importación Oficial exitosa! Los equipos ya están en el inventario oficial.");
       setResult(null);
