@@ -107,21 +107,15 @@ export default function InventoryForm({ initialCatalog }: { initialCatalog: Mode
     let finalManual = 0
 
     if (isNewEquipment) {
-      if (!receptionDate) {
-        setError('Debe ingresar la fecha de guía para un equipo nuevo.')
-        setLoading(false)
-        return
+      if (receptionDate) {
+        finalReception = receptionDate
+        finalMonths = calculateMonthsInOperation(receptionDate, 0)
       }
-      finalReception = receptionDate
-      finalMonths = calculateMonthsInOperation(receptionDate, 0)
     } else {
-      if (!manualMonths) {
-        setError('Debe ingresar los meses de uso previo para un equipo antiguo.')
-        setLoading(false)
-        return
+      if (manualMonths) {
+        finalManual = parseInt(manualMonths, 10)
+        finalMonths = calculateMonthsInOperation(null, finalManual)
       }
-      finalManual = parseInt(manualMonths, 10)
-      finalMonths = calculateMonthsInOperation(null, finalManual)
     }
 
     const { data: insertedItem, error: insertError } = await supabase
@@ -416,10 +410,9 @@ export default function InventoryForm({ initialCatalog }: { initialCatalog: Mode
         <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
           {isNewEquipment ? (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Fecha Guía Recepción Sonda *</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Fecha Guía de Recepción</label>
               <input 
                 type="date"
-                required={isNewEquipment}
                 value={receptionDate}
                 onChange={e => setReceptionDate(e.target.value)}
                 className="w-full sm:w-1/2 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -428,13 +421,13 @@ export default function InventoryForm({ initialCatalog }: { initialCatalog: Mode
             </div>
           ) : (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Meses de Operación Previos *</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Meses de Operación Previos</label>
               <input 
                 type="number" 
-                required={!isNewEquipment}
+                min="0"
                 value={manualMonths}
                 onChange={e => setManualMonths(e.target.value)}
-                className="w-full sm:w-1/2 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full sm:w-1/4 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                 placeholder="Ej: 24"
               />
               <p className="text-xs text-slate-500 mt-2">El equipo ingresará al sistema registrando este valor como base estática de desgaste.</p>

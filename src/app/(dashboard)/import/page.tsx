@@ -245,12 +245,37 @@ export default function ImportPage() {
         if (decision?.type === 'CONFLICT' && decision?.action === 'REASSIGN') {
           // Reasignar equipo existente
           equipmentId = decision.existingId;
+          
+          let reassignStatus = 'ASIGNADO';
+          let reassignUser: string | null = result.userName;
+          let reassignRut: string | null = result.rut;
+          let reassignTicket: string | null = result.ticketNumber || null;
+          
+          if (item.action === 'DEVUELTO' || item.action === 'DEVOLUCION') {
+            reassignStatus = documentType === 'RETURN' ? 'POR_DEVOLVER' : 'EN_BODEGA';
+            reassignUser = null;
+            reassignRut = null;
+            reassignTicket = null;
+          } else if (documentType === 'RECEPTION') {
+            reassignStatus = 'EN_BODEGA';
+            reassignUser = null;
+            reassignRut = null;
+            reassignTicket = null;
+          } else if (documentType === 'RETURN') {
+            reassignStatus = 'POR_DEVOLVER';
+            reassignUser = null;
+            reassignRut = null;
+            reassignTicket = null;
+          }
+
           const { error: eqError } = await supabase.from('inventory').update({
-            status: 'ASIGNADO',
-            current_user_name: result.userName,
-            current_user_rut: result.rut,
-            assignment_ticket: result.ticketNumber || null,
-            ...(result.receptionDate ? { assignment_date: result.receptionDate } : {})
+            status: reassignStatus,
+            current_user_name: reassignUser,
+            current_user_rut: reassignRut,
+            assignment_ticket: reassignTicket,
+            ...(result.receptionDate && documentType === 'RECEPTION' ? { reception_date: result.receptionDate } : {}),
+            ...(result.receptionDate && documentType === 'DER' ? { assignment_date: result.receptionDate } : {}),
+            ...(result.receptionDate && documentType === 'RETURN' ? { return_date: result.receptionDate } : {})
           }).eq('id', equipmentId);
           if (eqError) throw eqError;
 
@@ -284,8 +309,13 @@ export default function ImportPage() {
         } else {
           // Equipo Nuevo
           let statusStr = 'ASIGNADO';
-          if (documentType === 'RECEPTION') statusStr = 'EN_BODEGA';
-          else if (documentType === 'RETURN') statusStr = 'POR_DEVOLVER';
+          if (item.action === 'DEVUELTO' || item.action === 'DEVOLUCION') {
+            statusStr = 'EN_BODEGA'; // Lo consideramos en bodega disponible, o POR_DEVOLVER dependiendo.
+            if (documentType === 'RETURN') statusStr = 'POR_DEVOLVER';
+          } else {
+            if (documentType === 'RECEPTION') statusStr = 'EN_BODEGA';
+            else if (documentType === 'RETURN') statusStr = 'POR_DEVOLVER';
+          }
 
           const { data: newEq, error: eqError } = await supabase.from('inventory').insert({
             category: (item.type || item.category || 'OTRO').toUpperCase(),
@@ -585,7 +615,7 @@ export default function ImportPage() {
                                   </div>
                                 ) : (
                                   <span className="text-xs px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded font-medium border border-emerald-500/20 inline-flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" /> Se registrará como {documentType === 'RECEPTION' ? 'En Bodega' : documentType === 'RETURN' ? 'Por Devolver' : 'Asignado'}
+                                    <CheckCircle2 className="w-3 h-3" /> Se registrará como {item.action === 'DEVUELTO' || item.action === 'DEVOLUCION' ? 'Por Devolver / En Bodega' : (documentType === 'RECEPTION' ? 'En Bodega' : documentType === 'RETURN' ? 'Por Devolver' : 'Asignado')}
                                   </span>
                                 )}
                               </td>

@@ -60,6 +60,7 @@ export default function DerForm({ availableEquipment, technicians, currentUserEm
   const [manualEqHostname, setManualEqHostname] = useState(draftData?.manualEqHostname || '')
   const [manualEqRam, setManualEqRam] = useState(draftData?.manualEqRam || '')
   const [manualEqStorage, setManualEqStorage] = useState(draftData?.manualEqStorage || '')
+  const [observacionesEntrante, setObservacionesEntrante] = useState(draftData?.observacionesEntrante || '')
   const [manualEqAssetTag, setManualEqAssetTag] = useState(draftData?.manualEqAssetTag || '')
 
   // Checkboxes Menores
@@ -260,10 +261,11 @@ export default function DerForm({ availableEquipment, technicians, currentUserEm
       userName, userRut, userAccount, userCargo, userArea, userPhone, userEmail,
       selectedEqId,
       isManualEq, manualEqCategory, manualEqBrand, manualEqModel, manualEqSerial, manualEqHostname, manualEqRam, manualEqStorage, manualEqAssetTag,
+      observacionesEntrante,
       hasMonitor, hasKitWireless, hasDocking, hasOtros, serieRotulosMenor,
       hasBolso, hasCargador, hasCandado, hasCableRed, hasMouseUSB,
       os, osBits, ofimatica, ofimaticaBits, otrosSoftware, deshabilitarOneDrive,
-      observaciones,
+      observaciones: observacionesEntrante ? `${observaciones}\n\nObservaciones adicionales: ${observacionesEntrante}` : observaciones,
       salienteTipo, salienteMarca, salienteModelo, salienteSerie, salienteRotulo, salienteHostname, salienteObservaciones,
       quedaraPoderDe, quedaraPoderDeOtros,
       dateDay, dateMonth, dateYear
@@ -470,7 +472,7 @@ export default function DerForm({ availableEquipment, technicians, currentUserEm
     hasMonitor, hasKitWireless, hasDocking, hasOtros, serieRotulosMenor,
     hasBolso, hasCargador, hasCandado, hasCableRed, hasMouseUSB,
     os, osBits, ofimatica, ofimaticaBits, otrosSoftware, deshabilitarOneDrive,
-    observaciones,
+    observaciones: observacionesEntrante ? `${observaciones}\n\nObservaciones adicionales: ${observacionesEntrante}` : observaciones,
     salienteTipo, salienteMarca, salienteModelo, salienteSerie, salienteRotulo,
     salienteHostname,
     salienteObservaciones,
@@ -580,6 +582,13 @@ export default function DerForm({ availableEquipment, technicians, currentUserEm
                     <select value={manualEqCategory} onChange={e => setManualEqCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white">
                       <option value="NOTEBOOK">Notebook</option>
                       <option value="DESKTOP">Desktop</option>
+                      <option value="PRINTER_COLOR">Impresora Color</option>
+                      <option value="PRINTER_BN">Impresora B/N</option>
+                      <option value="ZEBRA_LABEL">Zebra Etiquetas</option>
+                      <option value="ZEBRA_TRF">Zebra TRF</option>
+                      <option value="VIDEO_CONFERENCIA">Video Conferencia</option>
+                      <option value="SERVER">Servidor</option>
+                      <option value="TABLET">Tablet</option>
                       <option value="MONITOR">Monitor</option>
                       <option value="CELULAR">Celular</option>
                       <option value="PERIFERICO">Periférico</option>
@@ -617,6 +626,16 @@ export default function DerForm({ availableEquipment, technicians, currentUserEm
                 </div>
               </div>
             )}
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Observaciones de Entrega</label>
+              <textarea 
+                placeholder="Estado del equipo entregado, detalles adicionales..." 
+                value={observacionesEntrante} 
+                onChange={e => setObservacionesEntrante(e.target.value)} 
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white h-20" 
+              />
+            </div>
           </div>
           
           <div className="space-y-4">

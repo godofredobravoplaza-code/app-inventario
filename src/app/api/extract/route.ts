@@ -81,7 +81,8 @@ export async function POST(req: NextRequest) {
           "brand": "Marca del equipo",
           "model": "Modelo del equipo",
           "serial": "Número de serie o IMEI",
-          "hostname": "Hostname o nombre de la máquina si aparece para el equipo (ej. 122CHL...), sino vacío"
+          "hostname": "Hostname o nombre de la máquina si aparece para el equipo (ej. 122CHL...), sino vacío",
+          "action": "Indica 'ASIGNADO' si el equipo se le está entregando al usuario (entrante), o 'DEVUELTO' si el equipo está siendo retirado/devuelto por el usuario (saliente). Para guías de despacho, pon 'RECEPCION' o 'DEVOLUCION' según corresponda."
         }
       ]
     }
