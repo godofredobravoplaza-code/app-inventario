@@ -65,7 +65,9 @@ export default function EmployeeTab({ initialRecords }: { initialRecords: any[] 
       setRecords(records.filter(r => r.id !== id))
       router.refresh()
     }
-    const handleSaveUnregistered = async (record: any) => {
+  }
+
+  const handleSaveUnregistered = async (record: any) => {
     setIsAdding(true)
     const { data, error } = await supabase
       .from('employees')
