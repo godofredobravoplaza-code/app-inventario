@@ -65,6 +65,25 @@ export default function EmployeeTab({ initialRecords }: { initialRecords: any[] 
       setRecords(records.filter(r => r.id !== id))
       router.refresh()
     }
+    const handleSaveUnregistered = async (record: any) => {
+    setIsAdding(true)
+    const { data, error } = await supabase
+      .from('employees')
+      .insert({ 
+        rut: record.rut, 
+        full_name: record.full_name,
+        account_name: record.account_name || null
+      })
+      .select()
+      .single()
+
+    if (error) {
+      alert('Error al guardar: ' + error.message)
+    } else if (data) {
+      setRecords(records.map(r => r.id === record.id ? data : r))
+      router.refresh()
+    }
+    setIsAdding(false)
   }
 
   return (
@@ -140,23 +159,40 @@ export default function EmployeeTab({ initialRecords }: { initialRecords: any[] 
               </tr>
             ) : (
               filteredRecords.map(record => (
-                <tr key={record.id} className="hover:bg-slate-800/50">
+                <tr key={record.id} className={`hover:bg-slate-800/50 ${record._is_unregistered ? 'opacity-70 bg-amber-900/10' : ''}`}>
                   <td className="px-4 py-2.5 font-mono text-xs">{record.rut}</td>
-                  <td className="px-4 py-2.5 font-medium text-slate-200">{record.full_name}</td>
+                  <td className="px-4 py-2.5 font-medium text-slate-200">
+                    {record.full_name}
+                    {record._is_unregistered && (
+                      <span className="ml-2 inline-flex text-[10px] uppercase font-bold tracking-wider text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">No en catálogo</span>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 text-slate-400">{record.job_title || '-'}</td>
                   <td className="px-4 py-2.5 text-slate-400">{record.email || '-'}</td>
                   <td className="px-4 py-2.5 text-right flex justify-end gap-1">
-                    {/* Botón Edit placeholder - requiere más estado para edición inline */}
-                    <button className="text-slate-500 hover:text-indigo-400 p-1 transition-colors" title="Editar">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(record.id)}
-                      className="text-slate-500 hover:text-red-400 p-1 transition-colors"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {record._is_unregistered ? (
+                      <button 
+                        onClick={() => handleSaveUnregistered(record)}
+                        disabled={isAdding}
+                        className="text-amber-400 hover:text-amber-300 bg-amber-400/10 hover:bg-amber-400/20 px-2 py-1 rounded text-xs transition-colors font-medium"
+                        title="Guardar en el directorio oficial"
+                      >
+                        Registrar
+                      </button>
+                    ) : (
+                      <>
+                        <button className="text-slate-500 hover:text-indigo-400 p-1 transition-colors" title="Editar">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(record.id)}
+                          className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))

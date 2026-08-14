@@ -61,6 +61,27 @@ export default function ModelCatalogTab({ initialRecords }: { initialRecords: an
     }
   }
 
+  const handleSaveUnregistered = async (record: any) => {
+    setIsAdding(true)
+    const { data, error } = await supabase
+      .from('models_catalog')
+      .insert({ 
+        category: record.category, 
+        brand: record.brand, 
+        model: record.model 
+      })
+      .select()
+      .single()
+
+    if (error) {
+      alert('Error al agregar: ' + error.message)
+    } else if (data) {
+      setRecords(records.map(r => r.id === record.id ? data : r))
+      router.refresh()
+    }
+    setIsAdding(false)
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-end">
@@ -132,18 +153,34 @@ export default function ModelCatalogTab({ initialRecords }: { initialRecords: an
               </tr>
             ) : (
               filteredRecords.map(record => (
-                <tr key={record.id} className="hover:bg-slate-800/50">
-                  <td className="px-4 py-2.5">{record.category}</td>
+                <tr key={record.id} className={`hover:bg-slate-800/50 ${record._is_unregistered ? 'opacity-70 bg-amber-900/10' : ''}`}>
+                  <td className="px-4 py-2.5">
+                    {record.category}
+                    {record._is_unregistered && (
+                      <span className="block mt-1 w-max text-[10px] uppercase font-bold tracking-wider text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">No en catálogo</span>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 font-medium text-slate-200">{record.brand}</td>
                   <td className="px-4 py-2.5 font-medium text-slate-200">{record.model}</td>
                   <td className="px-4 py-2.5 text-right">
-                    <button 
-                      onClick={() => handleDelete(record.id)}
-                      className="text-slate-500 hover:text-red-400 p-1 transition-colors"
-                      title="Eliminar (si no está en uso)"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {record._is_unregistered ? (
+                      <button 
+                        onClick={() => handleSaveUnregistered(record)}
+                        disabled={isAdding}
+                        className="text-amber-400 hover:text-amber-300 bg-amber-400/10 hover:bg-amber-400/20 px-2 py-1 rounded text-xs transition-colors font-medium"
+                        title="Guardar en el catálogo oficial"
+                      >
+                        Registrar
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => handleDelete(record.id)}
+                        className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                        title="Eliminar (si no está en uso)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))

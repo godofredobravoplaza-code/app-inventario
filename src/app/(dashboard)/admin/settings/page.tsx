@@ -16,11 +16,64 @@ export default async function SettingsPage() {
     }
   )
 
-  // Fetch catalogs
-  const [modelsRes, employeesRes] = await Promise.all([
+  // Fetch catalogs and legacy data
+  const [modelsRes, employeesRes, inventoryRes, derRes] = await Promise.all([
     supabase.from('models_catalog').select('*').order('brand'),
-    supabase.from('employees').select('*').order('full_name')
+    supabase.from('employees').select('*').order('full_name'),
+    supabase.from('inventory').select('brand, model, category, current_user_name, current_user_rut, current_user_account'),
+    supabase.from('der_records').select('user_name, user_rut')
   ])
+
+  // Process and merge distinct models
+  const existingModels = new Set((modelsRes.data || []).map(m => `${m.brand?.toUpperCase()}|${m.model?.toUpperCase()}`))
+  const mergedModels = [...(modelsRes.data || [])]
+
+  if (inventoryRes.data) {
+    inventoryRes.data.forEach(item => {
+      if (!item.brand || !item.model) return
+      const key = `${item.brand.toUpperCase()}|${item.model.toUpperCase()}`
+      if (!existingModels.has(key)) {
+        existingModels.add(key)
+        mergedModels.push({
+          id: `temp_model_${key}`,
+          brand: item.brand.toUpperCase(),
+          model: item.model.toUpperCase(),
+          category: item.category || 'LAPTOP',
+          _is_unregistered: true // Custom flag to identify it needs saving
+        })
+      }
+    })
+  }
+
+  // Process and merge distinct users
+  const existingUsers = new Set((employeesRes.data || []).map(e => e.rut))
+  const mergedEmployees = [...(employeesRes.data || [])]
+
+  const processUser = (rut: string | null, name: string | null, account: string | null = null) => {
+    if (!rut || !name) return
+    const formattedRut = rut.trim().toUpperCase()
+    if (!existingUsers.has(formattedRut)) {
+      existingUsers.add(formattedRut)
+      mergedEmployees.push({
+        id: `temp_user_${formattedRut}`,
+        rut: formattedRut,
+        full_name: name.trim().toUpperCase(),
+        account_name: account || null,
+        _is_unregistered: true // Custom flag
+      })
+    }
+  }
+
+  if (inventoryRes.data) {
+    inventoryRes.data.forEach(item => processUser(item.current_user_rut, item.current_user_name, item.current_user_account))
+  }
+  if (derRes.data) {
+    derRes.data.forEach(item => processUser(item.user_rut, item.user_name))
+  }
+
+  // Sort them
+  mergedModels.sort((a, b) => a.brand.localeCompare(b.brand))
+  mergedEmployees.sort((a, b) => a.full_name.localeCompare(b.full_name))
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -34,8 +87,8 @@ export default async function SettingsPage() {
       </div>
 
       <SettingsTabs 
-        initialModels={modelsRes.data || []} 
-        initialEmployees={employeesRes.data || []} 
+        initialModels={mergedModels} 
+        initialEmployees={mergedEmployees} 
       />
     </div>
   )
