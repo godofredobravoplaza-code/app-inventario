@@ -82,6 +82,10 @@ export default function ModelCatalogTab({ initialRecords }: { initialRecords: an
     setIsAdding(false)
   }
 
+  const handleDiscard = (id: string) => {
+    setRecords(records.filter(r => r.id !== id))
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-end">
@@ -162,16 +166,26 @@ export default function ModelCatalogTab({ initialRecords }: { initialRecords: an
                   </td>
                   <td className="px-4 py-2.5 font-medium text-slate-200">{record.brand}</td>
                   <td className="px-4 py-2.5 font-medium text-slate-200">{record.model}</td>
-                  <td className="px-4 py-2.5 text-right">
+                  <td className="px-4 py-2.5 text-right flex justify-end gap-2">
                     {record._is_unregistered ? (
-                      <button 
-                        onClick={() => handleSaveUnregistered(record)}
-                        disabled={isAdding}
-                        className="text-amber-400 hover:text-amber-300 bg-amber-400/10 hover:bg-amber-400/20 px-2 py-1 rounded text-xs transition-colors font-medium"
-                        title="Guardar en el catálogo oficial"
-                      >
-                        Registrar
-                      </button>
+                      <>
+                        <button 
+                          onClick={() => handleSaveUnregistered(record)}
+                          disabled={isAdding}
+                          className="text-amber-400 hover:text-amber-300 bg-amber-400/10 hover:bg-amber-400/20 px-2 py-1 rounded text-xs transition-colors font-medium"
+                          title="Guardar en el catálogo oficial"
+                        >
+                          Registrar
+                        </button>
+                        <button 
+                          onClick={() => handleDiscard(record.id)}
+                          disabled={isAdding}
+                          className="text-slate-400 hover:text-slate-300 bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-xs transition-colors font-medium"
+                          title="Ocultar de esta lista"
+                        >
+                          Descartar
+                        </button>
+                      </>
                     ) : (
                       <button 
                         onClick={() => handleDelete(record.id)}

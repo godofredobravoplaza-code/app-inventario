@@ -88,6 +88,10 @@ export default function EmployeeTab({ initialRecords }: { initialRecords: any[] 
     setIsAdding(false)
   }
 
+  const handleDiscard = (id: string) => {
+    setRecords(records.filter(r => r.id !== id))
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-end">
@@ -171,16 +175,26 @@ export default function EmployeeTab({ initialRecords }: { initialRecords: any[] 
                   </td>
                   <td className="px-4 py-2.5 text-slate-400">{record.job_title || '-'}</td>
                   <td className="px-4 py-2.5 text-slate-400">{record.email || '-'}</td>
-                  <td className="px-4 py-2.5 text-right flex justify-end gap-1">
+                  <td className="px-4 py-2.5 text-right flex justify-end gap-2">
                     {record._is_unregistered ? (
-                      <button 
-                        onClick={() => handleSaveUnregistered(record)}
-                        disabled={isAdding}
-                        className="text-amber-400 hover:text-amber-300 bg-amber-400/10 hover:bg-amber-400/20 px-2 py-1 rounded text-xs transition-colors font-medium"
-                        title="Guardar en el directorio oficial"
-                      >
-                        Registrar
-                      </button>
+                      <>
+                        <button 
+                          onClick={() => handleSaveUnregistered(record)}
+                          disabled={isAdding}
+                          className="text-amber-400 hover:text-amber-300 bg-amber-400/10 hover:bg-amber-400/20 px-2 py-1 rounded text-xs transition-colors font-medium"
+                          title="Guardar en el directorio oficial"
+                        >
+                          Registrar
+                        </button>
+                        <button 
+                          onClick={() => handleDiscard(record.id)}
+                          disabled={isAdding}
+                          className="text-slate-400 hover:text-slate-300 bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-xs transition-colors font-medium"
+                          title="Ocultar de esta lista"
+                        >
+                          Descartar
+                        </button>
+                      </>
                     ) : (
                       <>
                         <button className="text-slate-500 hover:text-indigo-400 p-1 transition-colors" title="Editar">
